@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Development files
+*.md
+!README.md
+CHANGELOG.md
+.editorconfig
+.prettierrc*
+.eslintrc*
+**/tsconfig.json
+**/vite.config.ts
+
+# Testing
+**/__tests__/
+**/*.test.*
+**/*.spec.*
+coverage/
+.nyc_output/
+jest.config.*
+vitest.config.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Database files (development only)
+**/prisma/dev.sqlite
+**/prisma/dev.sqlite-journal
+*.db
+*.sqlite
+
+# Build artifacts (keep only what's needed for deployment)
+**/.cache
+**/public/_dev
+
+# Documentation
+docs/
+*.md
+!README.md
+
