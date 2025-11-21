@@ -1,0 +1,73 @@
+# Dependencies
+node_modules
+
+# Build outputs
+/.cache
+/build
+/app/build
+/public/build/
+/public/_dev
+/app/public/build
+/extensions/*/dist
+
+# Database
+/prisma/dev.sqlite
+/prisma/dev.sqlite-journal
+database.sqlite
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Shopify files created during app dev
+.shopify/*
+.shopify.lock
+
+# React Router generated files
+.react-router/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
