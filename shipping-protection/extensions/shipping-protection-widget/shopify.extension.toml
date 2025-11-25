@@ -1,0 +1,18 @@
+# Learn more about configuring your extension at https://shopify.dev/docs/apps/app-extensions/configuration
+
+api_version = "2025-01"
+
+[[extensions]]
+uid = "cfeb7d75-d1b6-668b-d2ec-9121c15e98f564c53fa7"
+type = "theme"
+name = "shipping-protection-widget"
+handle = "shipping-protection-widget"
+
+[extensions.settings]
+[[extensions.settings.groups]]
+name = "appearance"
+settings = [
+  { type = "text", id = "title", label = "Title", default = "Shipping protection" },
+  { type = "text", id = "description", label = "Description", default = "Protect your order from loss or damage" },
+]
+

@@ -1,0 +1,29 @@
+{% comment %}
+  Shipping Protection Widget Block
+  This block can be added to cart drawer templates
+{% endcomment %}
+
+<div data-shipping-protection-container></div>
+<script src="{{ 'shipping-protection-widget.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Shipping Protection",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Shipping protection"
+    },
+    {
+      "type": "text",
+      "id": "description",
+      "label": "Description",
+      "default": "Protect your order from loss or damage"
+    }
+  ]
+}
+{% endschema %}
+

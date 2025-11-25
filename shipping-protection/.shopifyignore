@@ -61,6 +61,8 @@ prisma/dev.sqlite-journal
 # Build artifacts (keep only what's needed for deployment)
 /.cache
 /public/_dev
+**/extensions/*/dist
+**/extensions/*/src
 
 # Documentation
 docs/
