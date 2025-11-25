@@ -14,6 +14,10 @@ export default async function handleRequest(
   responseHeaders: Headers,
   reactRouterContext: EntryContext
 ) {
+  // Check if this is an API route (app proxy routes)
+  const url = new URL(request.url);
+  const isApiRoute = url.pathname.startsWith('/apps/api/') || url.pathname.startsWith('/api/');
+  
   addDocumentResponseHeaders(request, responseHeaders);
   const userAgent = request.headers.get("user-agent");
   const callbackName = isbot(userAgent ?? '')
@@ -31,7 +35,12 @@ export default async function handleRequest(
           const body = new PassThrough();
           const stream = createReadableStreamFromReadable(body);
 
-          responseHeaders.set("Content-Type", "text/html");
+          // Only set HTML content type for non-API routes
+          // API routes should return JSON, so don't force HTML
+          if (!isApiRoute) {
+            responseHeaders.set("Content-Type", "text/html");
+          }
+          
           resolve(
             new Response(stream, {
               headers: responseHeaders,

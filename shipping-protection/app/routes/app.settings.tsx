@@ -91,20 +91,85 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const productId = formData.get("productId") as string | null;
+
+  let productHandle: string | null = null;
+  let variantId: string | null = null;
+  let price: string | null = null;
+
+  // If a product is selected, fetch its details
+  if (productId) {
+    try {
+      // Extract numeric product ID from GraphQL ID
+      const productIdMatch = productId.match(/\d+$/);
+      const numericProductId = productIdMatch ? productIdMatch[0] : null;
+
+      if (numericProductId) {
+        // Fetch product details using GraphQL
+        const productResponse = await admin.graphql(
+          `#graphql
+            query getProduct($id: ID!) {
+              product(id: $id) {
+                id
+                handle
+                variants(first: 1) {
+                  nodes {
+                    id
+                    price
+                  }
+                }
+              }
+            }`,
+          {
+            variables: {
+              id: productId,
+            },
+          }
+        );
+
+        const productJson = await productResponse.json();
+        const product = productJson.data?.product;
+
+        if (product) {
+          productHandle = product.handle || null;
+          
+          if (product.variants?.nodes?.[0]) {
+            variantId = product.variants.nodes[0].id || null;
+            price = product.variants.nodes[0].price || null;
+          }
+        }
+
+        console.log("Fetched product details:", {
+          productId,
+          productHandle,
+          variantId,
+          price,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+      // Continue with saving even if fetching details fails
+    }
+  }
 
   // Upsert settings
   await prisma.appSettings.upsert({
     where: { shop: session.shop },
     update: {
       shippingProtectionProductId: productId || null,
+      shippingProtectionProductHandle: productHandle || null,
+      shippingProtectionVariantId: variantId || null,
+      shippingProtectionPrice: price || null,
       updatedAt: new Date(),
     },
     create: {
       shop: session.shop,
       shippingProtectionProductId: productId || null,
+      shippingProtectionProductHandle: productHandle || null,
+      shippingProtectionVariantId: variantId || null,
+      shippingProtectionPrice: price || null,
     },
   });
 

@@ -2,7 +2,8 @@
 (function () {
   'use strict';
 
-  const SHIPPING_PROTECTION_API = '/apps/shipping-protection/api/widget-data';
+  const SHIPPING_PROTECTION_API = '/apps/api/widget-data';
+
   
   class ShippingProtectionWidget {
     constructor(container, settings) {
@@ -19,6 +20,8 @@
       await this.fetchProductData();
       this.render();
       this.attachEventListeners();
+
+      console.log('Shipping protection widget initialized');
     }
 
     async fetchProductData() {
@@ -29,22 +32,37 @@
         
         console.log('Fetching shipping protection product from:', apiUrl);
         
-        const response = await fetch(apiUrl);
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           console.error('API response not ok:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('Error response body:', errorText.substring(0, 200));
           return;
         }
         
-        const text = await response.text();
-        console.log('API response text:', text);
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        console.log('Content-Type:', contentType);
         
-        if (!text || text.trim() === '') {
-          console.log('Empty response from API');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Response is not JSON. Content-Type:', contentType);
+          console.error('Response body (first 500 chars):', text.substring(0, 500));
           return;
         }
         
-        const data = JSON.parse(text);
+        // Parse JSON directly
+        const data = await response.json();
         console.log('Parsed API data:', data);
         
         if (data.product && data.product.productId) {
@@ -128,6 +146,14 @@
           this.product.price = productData.variants[0].price;
           console.log('Set variantId:', this.product.variantId, 'price:', this.product.price);
         }
+        
+        // Get product image
+        if (productData.featured_image) {
+          this.product.image = productData.featured_image;
+        } else if (productData.images && productData.images.length > 0) {
+          this.product.image = productData.images[0];
+        }
+        console.log('Set product image:', this.product.image);
       } catch (error) {
         console.error('Error fetching product details:', error);
       }
@@ -149,19 +175,213 @@
       }
     }
 
+    injectStyles() {
+      // Only inject styles once
+      if (document.getElementById('shipping-protection-widget-styles')) {
+        return;
+      }
+
+      const styles = `
+        <style id="shipping-protection-widget-styles">
+          .shipping-protection-widget {
+            margin: 16px 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          }
+
+          .shipping-protection-widget__container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e5e5;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          }
+
+          .shipping-protection-widget__icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 4px;
+          }
+
+          .shipping-protection-widget__icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+          }
+
+          .shipping-protection-widget__content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .shipping-protection-widget__header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+
+          .shipping-protection-widget__title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            line-height: 1.4;
+          }
+
+          .shipping-protection-widget__price {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            line-height: 1.4;
+          }
+
+          .shipping-protection-widget__status {
+            margin-top: 2px;
+            line-height: 18px;
+          }
+
+          .shipping-protection-widget__status-text {
+            font-size: 12px;
+            color: #666666;
+          }
+
+          .shipping-protection-widget__terms {
+            font-size: 12px;
+            color: #1a1a1a;
+            text-decoration: underline;
+            display: inline-block;
+            cursor: pointer;
+            transition: color 0.2s;
+          }
+
+          .shipping-protection-widget__terms:hover {
+            color: #0066cc;
+          }
+
+          .shipping-protection-widget__toggle {
+            flex-shrink: 0;
+          }
+
+          .shipping-protection-toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+          }
+
+          .shipping-protection-toggle__input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+          }
+
+          .shipping-protection-toggle__slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cccccc;
+            transition: 0.3s;
+            border-radius: 24px;
+          }
+
+          .shipping-protection-toggle__slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+          }
+
+          .shipping-protection-toggle__input:checked + .shipping-protection-toggle__slider {
+            background-color: #0066cc;
+          }
+
+          .shipping-protection-toggle__input:checked + .shipping-protection-toggle__slider:before {
+            transform: translateX(20px);
+          }
+
+          .shipping-protection-toggle__input:focus + .shipping-protection-toggle__slider {
+            box-shadow: 0 0 1px #0066cc;
+          }
+
+          .shipping-protection-widget.loading {
+            opacity: 0.6;
+            pointer-events: none;
+          }
+
+          .shipping-protection-widget.loading .shipping-protection-toggle {
+            cursor: not-allowed;
+          }
+
+          @media (max-width: 480px) {
+            .shipping-protection-widget__container {
+              flex-wrap: wrap;
+              gap: 12px;
+            }
+
+            .shipping-protection-widget__icon {
+              width: 40px;
+              height: 40px;
+            }
+
+            .shipping-protection-widget__icon img,
+            .shipping-protection-widget__icon svg {
+              width: 100%;
+              height: 100%;
+            }
+
+            .shipping-protection-widget__toggle {
+              margin-left: auto;
+            }
+          }
+        </style>
+      `;
+
+      document.head.insertAdjacentHTML('beforeend', styles);
+    }
+
     render() {
       if (!this.product) {
         return;
       }
 
+      // Inject styles
+      this.injectStyles();
+
+      // Get product image URL, with fallback
+      const imageUrl = this.product.image || '';
+      const imageHTML = imageUrl 
+        ? `<img src="${imageUrl}" alt="${this.settings.title || 'Shipping protection'}" loading="lazy">`
+        : `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L4 7V12C4 16.55 6.36 20.74 10 21.91C11.5 21.42 12.5 20.5 12.5 20.5C12.5 20.5 13.5 21.42 15 21.91C18.64 20.74 21 16.55 21 12V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>
+            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`;
+
       const widgetHTML = `
         <div class="shipping-protection-widget" data-shipping-protection-widget>
           <div class="shipping-protection-widget__container">
             <div class="shipping-protection-widget__icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L4 7V12C4 16.55 6.36 20.74 10 21.91C11.5 21.42 12.5 20.5 12.5 20.5C12.5 20.5 13.5 21.42 15 21.91C18.64 20.74 21 16.55 21 12V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              ${imageHTML}
             </div>
             <div class="shipping-protection-widget__content">
               <div class="shipping-protection-widget__header">
@@ -310,6 +530,7 @@
     updateUI() {
       const statusText = this.container.querySelector('.shipping-protection-widget__status-text');
       const toggle = this.container.querySelector('.shipping-protection-toggle__input');
+      const iconContainer = this.container.querySelector('.shipping-protection-widget__icon');
       
       if (statusText) {
         statusText.textContent = this.isAdded
@@ -319,6 +540,24 @@
       
       if (toggle) {
         toggle.checked = this.isAdded;
+      }
+      
+      // Update image if it was loaded after initial render
+      if (iconContainer && this.product?.image) {
+        const existingImg = iconContainer.querySelector('img');
+        if (existingImg) {
+          existingImg.src = this.product.image;
+        } else {
+          // Replace SVG with image if image is now available
+          const existingSvg = iconContainer.querySelector('svg');
+          if (existingSvg) {
+            const img = document.createElement('img');
+            img.src = this.product.image;
+            img.alt = this.settings.title || 'Shipping protection';
+            img.loading = 'lazy';
+            iconContainer.replaceChild(img, existingSvg);
+          }
+        }
       }
     }
 
@@ -394,7 +633,7 @@
   }
 
   // Re-initialize when cart drawer opens (for themes that dynamically load cart)
-  const observer = new MutationObserver((mutations) => {
+  const observer = new MutationObserver(() => {
     if (!document.querySelector('[data-shipping-protection-container]')) {
       initWidget();
     }
