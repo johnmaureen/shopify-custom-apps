@@ -67,8 +67,21 @@
         
         if (data.product && data.product.productId) {
           this.product = data.product;
-          // Fetch product details to get variant ID and price
-          await this.fetchProductDetails();
+          
+          // If we already have variantId and price from API, skip fetching product details
+          // We only need variantId and price - image is optional and can be constructed from productHandle
+          if (!this.product.variantId || !this.product.price) {
+            await this.fetchProductDetails();
+          } else {
+            console.log('Using product data from API, skipping product details fetch');
+            // Try to construct image URL from productHandle if we have it
+            if (this.product.productHandle && !this.product.image) {
+              // Construct image URL - Shopify typically serves product images at this path
+              // This is a fallback, the actual image might need to come from the API
+              this.product.image = `/products/${this.product.productHandle}.jpg`;
+            }
+          }
+          
           this.checkIfInCart();
         } else {
           console.log('No product data in response');
@@ -127,6 +140,25 @@
         return;
       }
       
+      // Only fetch if we're missing variantId or price (critical data)
+      // Image is optional - we'll skip fetching if we have the critical data
+      const needsVariantId = !this.product.variantId;
+      const needsPrice = !this.product.price;
+      const needsImage = !this.product.image;
+      
+      // If we have both variantId and price, skip the fetch entirely
+      // The image is optional and we can work without it
+      if (!needsVariantId && !needsPrice) {
+        console.log('VariantId and price already available from API, skipping product details fetch');
+        // Try to get image from productHandle if available
+        if (needsImage && this.product.productHandle) {
+          // Try to construct a potential image URL (this may not work for all stores)
+          // The actual image should ideally come from the API in the future
+          console.log('Image not available, but we have productHandle:', this.product.productHandle);
+        }
+        return;
+      }
+      
       try {
         const productUrl = `/products/${this.product.productId}.js`;
         console.log('Fetching product details from:', productUrl);
@@ -135,27 +167,42 @@
         
         if (!response.ok) {
           console.error('Product details response not ok:', response.status);
+          // If we have variantId and price from API, we can continue without the fetch
+          if (!needsVariantId && !needsPrice) {
+            console.warn('Product details fetch failed, but we have required data from API, continuing...');
+            return;
+          }
           return;
         }
         
         const productData = await response.json();
         console.log('Product details:', productData);
         
-        if (productData.variants && productData.variants.length > 0) {
-          this.product.variantId = productData.variants[0].id;
-          this.product.price = productData.variants[0].price;
-          console.log('Set variantId:', this.product.variantId, 'price:', this.product.price);
+        // Only update variantId and price if we don't already have them
+        if (needsVariantId || needsPrice) {
+          if (productData.variants && productData.variants.length > 0) {
+            if (needsVariantId) {
+              this.product.variantId = productData.variants[0].id;
+            }
+            if (needsPrice) {
+              this.product.price = productData.variants[0].price;
+            }
+            console.log('Set variantId:', this.product.variantId, 'price:', this.product.price);
+          }
         }
         
-        // Get product image
-        if (productData.featured_image) {
-          this.product.image = productData.featured_image;
-        } else if (productData.images && productData.images.length > 0) {
-          this.product.image = productData.images[0];
+        // Get product image if we need it
+        if (needsImage) {
+          if (productData.featured_image) {
+            this.product.image = productData.featured_image;
+          } else if (productData.images && productData.images.length > 0) {
+            this.product.image = productData.images[0];
+          }
+          console.log('Set product image:', this.product.image);
         }
-        console.log('Set product image:', this.product.image);
       } catch (error) {
         console.error('Error fetching product details:', error);
+        // Don't throw - we can continue with the data we have from the API
       }
     }
 
@@ -385,7 +432,7 @@
             </div>
             <div class="shipping-protection-widget__content">
               <div class="shipping-protection-widget__header">
-                <span class="shipping-protection-widget__title">${this.settings.title || 'Shipping protection'}</span>
+                <span class="shipping-protection-widget__title">${this.product.productTitle || this.settings.title || 'Shipping protection'}</span>
                 <span class="shipping-protection-widget__price">${this.formatPrice(this.product.price)}</span>
               </div>
               <div class="shipping-protection-widget__status">

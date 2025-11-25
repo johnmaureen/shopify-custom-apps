@@ -96,6 +96,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const productId = formData.get("productId") as string | null;
 
   let productHandle: string | null = null;
+  let productTitle: string | null = null;
   let variantId: string | null = null;
   let price: string | null = null;
 
@@ -113,6 +114,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             query getProduct($id: ID!) {
               product(id: $id) {
                 id
+                title
                 handle
                 variants(first: 1) {
                   nodes {
@@ -134,6 +136,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         if (product) {
           productHandle = product.handle || null;
+          productTitle = product.title || null;
           
           if (product.variants?.nodes?.[0]) {
             variantId = product.variants.nodes[0].id || null;
@@ -144,6 +147,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         console.log("Fetched product details:", {
           productId,
           productHandle,
+          productTitle,
           variantId,
           price,
         });
@@ -160,6 +164,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     update: {
       shippingProtectionProductId: productId || null,
       shippingProtectionProductHandle: productHandle || null,
+      shippingProtectionProductTitle: productTitle || null,
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
       updatedAt: new Date(),
@@ -168,6 +173,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shop: session.shop,
       shippingProtectionProductId: productId || null,
       shippingProtectionProductHandle: productHandle || null,
+      shippingProtectionProductTitle: productTitle || null,
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
     },

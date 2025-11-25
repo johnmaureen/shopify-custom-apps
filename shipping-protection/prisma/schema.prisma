@@ -36,6 +36,7 @@ model AppSettings {
   shop                      String   @unique
   shippingProtectionProductId String?
   shippingProtectionProductHandle String?
+  shippingProtectionProductTitle String?
   shippingProtectionVariantId String?
   shippingProtectionPrice   String?
   createdAt                 DateTime @default(now())

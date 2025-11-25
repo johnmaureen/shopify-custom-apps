@@ -76,6 +76,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.log("Widget API - extracted productId:", productId);
     console.log("Widget API - settings object keys:", Object.keys(settings || {}));
     console.log("Widget API - productHandle:", (settings as any)?.shippingProtectionProductHandle);
+    console.log("Widget API - productTitle:", (settings as any)?.shippingProtectionProductTitle);
     console.log("Widget API - variantId:", (settings as any)?.shippingProtectionVariantId);
     console.log("Widget API - price:", (settings as any)?.shippingProtectionPrice);
 
@@ -100,6 +101,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       product: {
         productId: parseInt(productId),
         productHandle: (settings as any)?.shippingProtectionProductHandle || null,
+        productTitle: (settings as any)?.shippingProtectionProductTitle || null,
         variantId: numericVariantId,
         price: (settings as any)?.shippingProtectionPrice || null,
       },
