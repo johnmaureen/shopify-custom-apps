@@ -87,6 +87,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     products,
     selectedProductId,
+    termsAndConditions: settings?.termsAndConditions || null,
   };
 };
 
@@ -94,6 +95,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const productId = formData.get("productId") as string | null;
+  const termsAndConditions = formData.get("termsAndConditions") as string | null;
 
   let productHandle: string | null = null;
   let productTitle: string | null = null;
@@ -209,6 +211,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shippingProtectionProductImage: productImage || null,
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
+      termsAndConditions: termsAndConditions || null,
       updatedAt: new Date(),
     },
     create: {
@@ -219,6 +222,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shippingProtectionProductImage: productImage || null,
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
+      termsAndConditions: termsAndConditions || null,
     },
   });
 
@@ -226,10 +230,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Settings() {
-  const { products, selectedProductId } = useLoaderData<typeof loader>();
+  const { products, selectedProductId, termsAndConditions } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
   const [selectedId, setSelectedId] = useState<string | null>(selectedProductId);
+  const [termsText, setTermsText] = useState<string>(termsAndConditions || "");
 
   // Console log on component mount
   useEffect(() => {
@@ -263,6 +268,7 @@ export default function Settings() {
     if (selectedId) {
       formData.append("productId", selectedId);
     }
+    formData.append("termsAndConditions", termsText);
     fetcher.submit(formData, { method: "POST" });
   };
 
@@ -370,6 +376,39 @@ export default function Settings() {
               </s-stack>
             </s-box>
           )}
+        </s-stack>
+      </s-section>
+
+      <s-section heading="Terms and Conditions">
+        <s-paragraph>
+          Enter the terms and conditions text that will be displayed in a popup when customers click the "Terms and Conditions" link in the shipping protection widget.
+        </s-paragraph>
+
+        <s-stack direction="block" gap="base">
+          <div>
+            <label htmlFor="terms-textarea" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+              Terms and Conditions
+            </label>
+            <textarea
+              id="terms-textarea"
+              value={termsText}
+              onChange={(e) => setTermsText(e.target.value)}
+              rows={10}
+              style={{
+                width: "100%",
+                padding: "12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "14px",
+                fontFamily: "inherit",
+                resize: "vertical",
+              }}
+              placeholder="Enter terms and conditions text here. You can use bullet points, line breaks, etc."
+            />
+            <s-text tone="subdued" size="small">
+              You can format text with line breaks and bullet points. The text will be displayed in a popup modal.
+            </s-text>
+          </div>
         </s-stack>
       </s-section>
     </s-page>

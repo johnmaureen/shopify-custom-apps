@@ -107,6 +107,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         variantId: numericVariantId,
         price: (settings as any)?.shippingProtectionPrice || null,
       },
+      termsAndConditions: (settings as any)?.termsAndConditions || null,
     }, {
       headers: { 'Content-Type': 'application/json' }
     });

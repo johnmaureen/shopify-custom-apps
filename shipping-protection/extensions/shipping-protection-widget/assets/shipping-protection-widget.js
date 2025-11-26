@@ -12,6 +12,7 @@
       this.product = null;
       this.isLoading = false;
       this.isAdded = false;
+      this.termsAndConditions = null;
       
       this.init();
     }
@@ -70,6 +71,9 @@
         const data = await response.json();
         console.log('Parsed API data:', data);
         console.log('Product image from API:', data.product?.image);
+        
+        // Store terms and conditions
+        this.termsAndConditions = data.termsAndConditions || null;
         
         if (data.product && data.product.productId) {
           this.product = data.product;
@@ -321,6 +325,9 @@
 
           .shipping-protection-widget__status {
             line-height: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
           }
 
           .shipping-protection-widget__status-text {
@@ -329,17 +336,112 @@
             letter-spacing: 0;
           }
 
-          .shipping-protection-widget__terms {
+          .shipping-protection-widget__terms-link {
             font-size: 12px;
             color: #1a1a1a;
             text-decoration: underline;
             display: inline-block;
             cursor: pointer;
             transition: color 0.2s;
+            margin-top: 4px;
           }
 
-          .shipping-protection-widget__terms:hover {
+          .shipping-protection-widget__terms-link:hover {
             color: #0066cc;
+          }
+
+          .shipping-protection-widget__modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+          }
+
+          .shipping-protection-widget__modal--open {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .shipping-protection-widget__modal-content {
+            background-color: #ffffff;
+            margin: auto;
+            padding: 24px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+          }
+
+          .shipping-protection-widget__modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e5e5;
+          }
+
+          .shipping-protection-widget__modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0;
+          }
+
+          .shipping-protection-widget__modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+          }
+
+          .shipping-protection-widget__modal-close:hover {
+            background-color: #f5f5f5;
+            color: #1a1a1a;
+          }
+
+          .shipping-protection-widget__modal-body {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1a1a1a;
+            white-space: pre-line;
+          }
+
+          .shipping-protection-widget__modal-body ul,
+          .shipping-protection-widget__modal-body ol {
+            margin: 12px 0;
+            padding-left: 24px;
+          }
+
+          .shipping-protection-widget__modal-body li {
+            margin: 8px 0;
+          }
+
+          .shipping-protection-widget__modal-body p {
+            margin: 12px 0;
+          }
+
+          .shipping-protection-widget__modal-body strong {
+            font-weight: 600;
           }
 
           .shipping-protection-toggle {
@@ -489,6 +591,7 @@
                   <span class="shipping-protection-widget__status-text">
                     ${this.isAdded ? 'Order is protected from loss or damage' : 'Order isn\'t protected from loss or damage'}
                   </span>
+                  ${this.termsAndConditions ? `<a href="#" class="shipping-protection-widget__terms-link">Terms and Conditions</a>` : ''}
                 </div>
               </div>
             </div>
@@ -511,6 +614,15 @@
             }
           });
         }
+      }
+
+      // Terms and conditions link
+      const termsLink = this.container.querySelector('.shipping-protection-widget__terms-link');
+      if (termsLink) {
+        termsLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.showTermsModal();
+        });
       }
     }
 
@@ -671,6 +783,82 @@
         } else {
           widget.classList.remove('loading');
         }
+      }
+    }
+
+    showTermsModal() {
+      if (!this.termsAndConditions) {
+        return;
+      }
+
+      // Create modal if it doesn't exist
+      let modal = document.getElementById('shipping-protection-terms-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'shipping-protection-terms-modal';
+        modal.className = 'shipping-protection-widget__modal';
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'shipping-protection-widget__modal-content';
+        
+        const modalHeader = document.createElement('div');
+        modalHeader.className = 'shipping-protection-widget__modal-header';
+        
+        const modalTitle = document.createElement('h2');
+        modalTitle.className = 'shipping-protection-widget__modal-title';
+        modalTitle.textContent = 'Terms and Conditions';
+        
+        const closeButton = document.createElement('button');
+        closeButton.className = 'shipping-protection-widget__modal-close';
+        closeButton.innerHTML = '&times;';
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.addEventListener('click', () => {
+          this.hideTermsModal();
+        });
+        
+        modalHeader.appendChild(modalTitle);
+        modalHeader.appendChild(closeButton);
+        
+        const modalBody = document.createElement('div');
+        modalBody.className = 'shipping-protection-widget__modal-body';
+        
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(modalBody);
+        modal.appendChild(modalContent);
+        
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            this.hideTermsModal();
+          }
+        });
+        
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && modal.classList.contains('shipping-protection-widget__modal--open')) {
+            this.hideTermsModal();
+          }
+        });
+        
+        document.body.appendChild(modal);
+      }
+      
+      // Update modal content
+      const modalBody = modal.querySelector('.shipping-protection-widget__modal-body');
+      if (modalBody) {
+        modalBody.textContent = this.termsAndConditions;
+      }
+      
+      // Show modal
+      modal.classList.add('shipping-protection-widget__modal--open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    hideTermsModal() {
+      const modal = document.getElementById('shipping-protection-terms-modal');
+      if (modal) {
+        modal.classList.remove('shipping-protection-widget__modal--open');
+        document.body.style.overflow = '';
       }
     }
 
