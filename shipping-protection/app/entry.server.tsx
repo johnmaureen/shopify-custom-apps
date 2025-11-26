@@ -38,7 +38,7 @@ export default async function handleRequest(
           // Only set HTML content type for non-API routes
           // API routes should return JSON, so don't force HTML
           if (!isApiRoute) {
-            responseHeaders.set("Content-Type", "text/html");
+          responseHeaders.set("Content-Type", "text/html");
           }
           
           resolve(

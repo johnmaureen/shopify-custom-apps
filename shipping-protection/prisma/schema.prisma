@@ -37,6 +37,7 @@ model AppSettings {
   shippingProtectionProductId String?
   shippingProtectionProductHandle String?
   shippingProtectionProductTitle String?
+  shippingProtectionProductImage String?
   shippingProtectionVariantId String?
   shippingProtectionPrice   String?
   createdAt                 DateTime @default(now())

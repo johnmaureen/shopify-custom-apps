@@ -20,6 +20,11 @@
       await this.fetchProductData();
       this.render();
       this.attachEventListeners();
+      
+      // Enable shipping protection by default if not already in cart
+      if (this.product && !this.isAdded) {
+        await this.addToCart();
+      }
 
       console.log('Shipping protection widget initialized');
     }
@@ -64,22 +69,23 @@
         // Parse JSON directly
         const data = await response.json();
         console.log('Parsed API data:', data);
+        console.log('Product image from API:', data.product?.image);
         
         if (data.product && data.product.productId) {
           this.product = data.product;
           
+          // Log the image URL we received
+          if (this.product.image) {
+            console.log('Product image URL:', this.product.image);
+          } else {
+            console.warn('No product image URL in API response');
+          }
+          
           // If we already have variantId and price from API, skip fetching product details
-          // We only need variantId and price - image is optional and can be constructed from productHandle
           if (!this.product.variantId || !this.product.price) {
             await this.fetchProductDetails();
           } else {
             console.log('Using product data from API, skipping product details fetch');
-            // Try to construct image URL from productHandle if we have it
-            if (this.product.productHandle && !this.product.image) {
-              // Construct image URL - Shopify typically serves product images at this path
-              // This is a fallback, the actual image might need to come from the API
-              this.product.image = `/products/${this.product.productHandle}.jpg`;
-            }
           }
           
           this.checkIfInCart();
@@ -215,6 +221,7 @@
           this.isAdded = cart.items.some(
             item => item.product_id === this.product.productId
           );
+          // Update UI but don't auto-add here - let init() handle that
           this.updateUI();
         }
       } catch (error) {
@@ -237,13 +244,32 @@
 
           .shipping-protection-widget__container {
             display: flex;
-            align-items: center;
-            gap: 16px;
+            align-items: flex-start;
+            gap: 12px;
             padding: 16px;
             background: #ffffff;
             border-radius: 8px;
             border: 1px solid #e5e5e5;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          }
+
+          .shipping-protection-widget__content-wrapper {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .shipping-protection-widget__row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+          }
+
+          .shipping-protection-widget__row--header {
+            justify-content: space-between;
           }
 
           .shipping-protection-widget__icon {
@@ -260,7 +286,7 @@
           .shipping-protection-widget__icon img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             display: block;
           }
 
@@ -268,39 +294,39 @@
             flex: 1;
             min-width: 0;
             display: flex;
-            flex-direction: column;
-            gap: 4px;
-          }
-
-          .shipping-protection-widget__header {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
           }
 
           .shipping-protection-widget__title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             color: #1a1a1a;
             line-height: 1.4;
+            flex: 0 1 auto;
+            letter-spacing: 0;
           }
 
           .shipping-protection-widget__price {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 400;
             color: #1a1a1a;
             line-height: 1.4;
+            flex: 0 0 auto;
+          }
+
+          .shipping-protection-widget__toggle {
+            flex-shrink: 0;
           }
 
           .shipping-protection-widget__status {
-            margin-top: 2px;
             line-height: 18px;
           }
 
           .shipping-protection-widget__status-text {
             font-size: 12px;
             color: #666666;
+            letter-spacing: 0;
           }
 
           .shipping-protection-widget__terms {
@@ -316,15 +342,11 @@
             color: #0066cc;
           }
 
-          .shipping-protection-widget__toggle {
-            flex-shrink: 0;
-          }
-
           .shipping-protection-toggle {
             position: relative;
             display: inline-block;
-            width: 44px;
-            height: 24px;
+            width: 38px;
+            height: 22px;
             cursor: pointer;
           }
 
@@ -343,15 +365,15 @@
             bottom: 0;
             background-color: #cccccc;
             transition: 0.3s;
-            border-radius: 24px;
+            border-radius: 22px;
           }
 
           .shipping-protection-toggle__slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
+            height: 16px;
+            width: 16px;
+            left: 4px;
             bottom: 3px;
             background-color: white;
             transition: 0.3s;
@@ -364,7 +386,7 @@
           }
 
           .shipping-protection-toggle__input:checked + .shipping-protection-toggle__slider:before {
-            transform: translateX(20px);
+            transform: translateX(14px);
           }
 
           .shipping-protection-toggle__input:focus + .shipping-protection-toggle__slider {
@@ -382,8 +404,15 @@
 
           @media (max-width: 480px) {
             .shipping-protection-widget__container {
-              flex-wrap: wrap;
               gap: 12px;
+            }
+
+            .shipping-protection-widget__content-wrapper {
+              gap: 8px;
+            }
+
+            .shipping-protection-widget__row {
+              gap: 8px;
             }
 
             .shipping-protection-widget__icon {
@@ -397,8 +426,12 @@
               height: 100%;
             }
 
-            .shipping-protection-widget__toggle {
-              margin-left: auto;
+            .shipping-protection-widget__title {
+              font-size: 14px;
+            }
+
+            .shipping-protection-widget__price {
+              font-size: 14px;
             }
           }
         </style>
@@ -417,12 +450,16 @@
 
       // Get product image URL, with fallback
       const imageUrl = this.product.image || '';
-      const imageHTML = imageUrl 
-        ? `<img src="${imageUrl}" alt="${this.settings.title || 'Shipping protection'}" loading="lazy">`
-        : `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      console.log('Rendering widget - imageUrl:', imageUrl);
+      
+      const fallbackSvg = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 2L4 7V12C4 16.55 6.36 20.74 10 21.91C11.5 21.42 12.5 20.5 12.5 20.5C12.5 20.5 13.5 21.42 15 21.91C18.64 20.74 21 16.55 21 12V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>
             <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>`;
+      
+      const imageHTML = imageUrl 
+        ? `<img src="${imageUrl}" alt="${this.product.productTitle || this.settings.title || 'Shipping protection'}" loading="lazy" class="shipping-protection-widget__product-image">`
+        : fallbackSvg;
 
       const widgetHTML = `
         <div class="shipping-protection-widget" data-shipping-protection-widget>
@@ -430,33 +467,51 @@
             <div class="shipping-protection-widget__icon">
               ${imageHTML}
             </div>
-            <div class="shipping-protection-widget__content">
-              <div class="shipping-protection-widget__header">
-                <span class="shipping-protection-widget__title">${this.product.productTitle || this.settings.title || 'Shipping protection'}</span>
-                <span class="shipping-protection-widget__price">${this.formatPrice(this.product.price)}</span>
+            <div class="shipping-protection-widget__content-wrapper">
+              <div class="shipping-protection-widget__row shipping-protection-widget__row--header">
+                <div class="shipping-protection-widget__content">
+                  <span class="shipping-protection-widget__title">${this.product.productTitle || this.settings.title || 'Shipping protection'}</span>
+                  <span class="shipping-protection-widget__price">${this.formatPrice(this.product.price)}</span>
+                </div>
+                <div class="shipping-protection-widget__toggle">
+                  <label class="shipping-protection-toggle">
+                    <input 
+                      type="checkbox" 
+                      class="shipping-protection-toggle__input"
+                      ${this.isAdded ? 'checked' : ''}
+                    >
+                    <span class="shipping-protection-toggle__slider"></span>
+                  </label>
+                </div>
               </div>
-              <div class="shipping-protection-widget__status">
-                <span class="shipping-protection-widget__status-text">
-                  ${this.isAdded ? 'Order is protected from loss or damage' : 'Order isn\'t protected from loss or damage'}
-                </span>
+              <div class="shipping-protection-widget__row">
+                <div class="shipping-protection-widget__status">
+                  <span class="shipping-protection-widget__status-text">
+                    ${this.isAdded ? 'Order is protected from loss or damage' : 'Order isn\'t protected from loss or damage'}
+                  </span>
+                </div>
               </div>
-              <a href="#" class="shipping-protection-widget__terms">Terms and Conditions</a>
-            </div>
-            <div class="shipping-protection-widget__toggle">
-              <label class="shipping-protection-toggle">
-                <input 
-                  type="checkbox" 
-                  class="shipping-protection-toggle__input"
-                  ${this.isAdded ? 'checked' : ''}
-                >
-                <span class="shipping-protection-toggle__slider"></span>
-              </label>
             </div>
           </div>
         </div>
       `;
 
       this.container.innerHTML = widgetHTML;
+      
+      // Attach error handler to image if it exists
+      if (imageUrl) {
+        const img = this.container.querySelector('.shipping-protection-widget__product-image');
+        if (img) {
+          img.addEventListener('error', () => {
+            console.error('Image failed to load:', img.src);
+            img.style.display = 'none';
+            const iconContainer = img.parentElement;
+            if (iconContainer) {
+              iconContainer.innerHTML = fallbackSvg;
+            }
+          });
+        }
+      }
     }
 
     attachEventListeners() {
@@ -620,12 +675,40 @@
     }
 
     formatPrice(price) {
+      // Get shop currency from Shopify object or meta tag
+      let currency = 'USD';
+      if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
+        currency = window.Shopify.currency.active;
+      } else if (window.Shopify && window.Shopify.shop && window.Shopify.shop.currency) {
+        currency = window.Shopify.shop.currency;
+      } else {
+        const currencyMeta = document.querySelector('meta[name="shopify-checkout-currency"]');
+        if (currencyMeta) {
+          currency = currencyMeta.content;
+        }
+      }
+
       if (typeof price === 'string') {
+        // If price is already a string, check if it has a currency symbol
+        const hasCurrencySymbol = /[\$€£¥₹]/.test(price);
+        if (hasCurrencySymbol) {
+          return price;
+        }
+        // If no currency symbol, parse and format
+        const numericPrice = parseFloat(price);
+        if (!isNaN(numericPrice)) {
+          return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency,
+          }).format(numericPrice);
+        }
         return price;
       }
+      
+      // Price is numeric (in cents), format with currency
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: currency,
       }).format(price / 100);
     }
   }

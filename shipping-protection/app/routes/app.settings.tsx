@@ -97,6 +97,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   let productHandle: string | null = null;
   let productTitle: string | null = null;
+  let productImage: string | null = null;
   let variantId: string | null = null;
   let price: string | null = null;
 
@@ -116,6 +117,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 id
                 title
                 handle
+                featuredMedia {
+                  ... on MediaImage {
+                    image {
+                      url
+                    }
+                  }
+                  ... on Video {
+                    preview {
+                      image {
+                        url
+                      }
+                    }
+                  }
+                  ... on Model3d {
+                    preview {
+                      image {
+                        url
+                      }
+                    }
+                  }
+                  ... on ExternalVideo {
+                    preview {
+                      image {
+                        url
+                      }
+                    }
+                  }
+                }
                 variants(first: 1) {
                   nodes {
                     id
@@ -138,6 +167,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           productHandle = product.handle || null;
           productTitle = product.title || null;
           
+          // Extract image URL from featuredMedia (handles different media types)
+          if (product.featuredMedia) {
+            if (product.featuredMedia.image?.url) {
+              // MediaImage type
+              productImage = product.featuredMedia.image.url;
+            } else if (product.featuredMedia.preview?.image?.url) {
+              // Video, Model3d, or ExternalVideo type - use preview image
+              productImage = product.featuredMedia.preview.image.url;
+            }
+          }
+          
           if (product.variants?.nodes?.[0]) {
             variantId = product.variants.nodes[0].id || null;
             price = product.variants.nodes[0].price || null;
@@ -148,6 +188,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           productId,
           productHandle,
           productTitle,
+          productImage,
           variantId,
           price,
         });
@@ -165,6 +206,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shippingProtectionProductId: productId || null,
       shippingProtectionProductHandle: productHandle || null,
       shippingProtectionProductTitle: productTitle || null,
+      shippingProtectionProductImage: productImage || null,
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
       updatedAt: new Date(),
@@ -174,6 +216,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shippingProtectionProductId: productId || null,
       shippingProtectionProductHandle: productHandle || null,
       shippingProtectionProductTitle: productTitle || null,
+      shippingProtectionProductImage: productImage || null,
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
     },
