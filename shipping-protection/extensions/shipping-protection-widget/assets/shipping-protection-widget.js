@@ -13,6 +13,7 @@
       this.isLoading = false;
       this.isAdded = false;
       this.termsAndConditions = null;
+      this.termsModalTitle = null;
       
       this.init();
     }
@@ -74,6 +75,7 @@
         
         // Store terms and conditions
         this.termsAndConditions = data.termsAndConditions || null;
+        this.termsModalTitle = data.termsModalTitle || null;
         
         if (data.product && data.product.productId) {
           this.product = data.product;
@@ -373,9 +375,9 @@
             background-color: #ffffff;
             margin: auto;
             padding: 24px;
-            border-radius: 8px;
+            border-radius: 5px;
             width: 90%;
-            max-width: 600px;
+            max-width: 750px;
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -423,7 +425,6 @@
             font-size: 14px;
             line-height: 1.6;
             color: #1a1a1a;
-            white-space: pre-line;
           }
 
           .shipping-protection-widget__modal-body ul,
@@ -442,6 +443,10 @@
 
           .shipping-protection-widget__modal-body strong {
             font-weight: 600;
+          }
+
+          .shipping-protection-widget__modal-body a {
+            color: inherit;
           }
 
           .shipping-protection-toggle {
@@ -786,82 +791,6 @@
       }
     }
 
-    showTermsModal() {
-      if (!this.termsAndConditions) {
-        return;
-      }
-
-      // Create modal if it doesn't exist
-      let modal = document.getElementById('shipping-protection-terms-modal');
-      if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'shipping-protection-terms-modal';
-        modal.className = 'shipping-protection-widget__modal';
-        
-        const modalContent = document.createElement('div');
-        modalContent.className = 'shipping-protection-widget__modal-content';
-        
-        const modalHeader = document.createElement('div');
-        modalHeader.className = 'shipping-protection-widget__modal-header';
-        
-        const modalTitle = document.createElement('h2');
-        modalTitle.className = 'shipping-protection-widget__modal-title';
-        modalTitle.textContent = 'Terms and Conditions';
-        
-        const closeButton = document.createElement('button');
-        closeButton.className = 'shipping-protection-widget__modal-close';
-        closeButton.innerHTML = '&times;';
-        closeButton.setAttribute('aria-label', 'Close');
-        closeButton.addEventListener('click', () => {
-          this.hideTermsModal();
-        });
-        
-        modalHeader.appendChild(modalTitle);
-        modalHeader.appendChild(closeButton);
-        
-        const modalBody = document.createElement('div');
-        modalBody.className = 'shipping-protection-widget__modal-body';
-        
-        modalContent.appendChild(modalHeader);
-        modalContent.appendChild(modalBody);
-        modal.appendChild(modalContent);
-        
-        // Close on backdrop click
-        modal.addEventListener('click', (e) => {
-          if (e.target === modal) {
-            this.hideTermsModal();
-          }
-        });
-        
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && modal.classList.contains('shipping-protection-widget__modal--open')) {
-            this.hideTermsModal();
-          }
-        });
-        
-        document.body.appendChild(modal);
-      }
-      
-      // Update modal content
-      const modalBody = modal.querySelector('.shipping-protection-widget__modal-body');
-      if (modalBody) {
-        modalBody.textContent = this.termsAndConditions;
-      }
-      
-      // Show modal
-      modal.classList.add('shipping-protection-widget__modal--open');
-      document.body.style.overflow = 'hidden';
-    }
-
-    hideTermsModal() {
-      const modal = document.getElementById('shipping-protection-terms-modal');
-      if (modal) {
-        modal.classList.remove('shipping-protection-widget__modal--open');
-        document.body.style.overflow = '';
-      }
-    }
-
     formatPrice(price) {
       // Get shop currency from Shopify object or meta tag
       let currency = 'USD';
@@ -898,6 +827,94 @@
         style: 'currency',
         currency: currency,
       }).format(price / 100);
+    }
+
+    showTermsModal() {
+      if (!this.termsAndConditions) {
+        console.warn('No terms and conditions available');
+        return;
+      }
+
+      console.log('Showing terms modal with content:', this.termsAndConditions);
+
+      // Create modal if it doesn't exist
+      let modal = document.getElementById('shipping-protection-terms-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'shipping-protection-terms-modal';
+        modal.className = 'shipping-protection-widget__modal';
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'shipping-protection-widget__modal-content';
+        
+        const modalHeader = document.createElement('div');
+        modalHeader.className = 'shipping-protection-widget__modal-header';
+        
+        const modalTitle = document.createElement('h2');
+        modalTitle.className = 'shipping-protection-widget__modal-title';
+        modalTitle.textContent = this.termsModalTitle || 'Terms and Conditions';
+        
+        const closeButton = document.createElement('button');
+        closeButton.className = 'shipping-protection-widget__modal-close';
+        closeButton.innerHTML = '&times;';
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.addEventListener('click', () => {
+          this.hideTermsModal();
+        });
+        
+        modalHeader.appendChild(modalTitle);
+        modalHeader.appendChild(closeButton);
+        
+        const modalBody = document.createElement('div');
+        modalBody.className = 'shipping-protection-widget__modal-body';
+        
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(modalBody);
+        modal.appendChild(modalContent);
+        
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            this.hideTermsModal();
+          }
+        });
+        
+        // Close on Escape key
+        const escapeHandler = (e) => {
+          if (e.key === 'Escape' && modal.classList.contains('shipping-protection-widget__modal--open')) {
+            this.hideTermsModal();
+            document.removeEventListener('keydown', escapeHandler);
+          }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        document.body.appendChild(modal);
+      }
+      
+      // Update modal title
+      const modalTitleElement = modal.querySelector('.shipping-protection-widget__modal-title');
+      if (modalTitleElement) {
+        modalTitleElement.textContent = this.termsModalTitle || 'Terms and Conditions';
+      }
+      
+      // Update modal content
+      const modalBody = modal.querySelector('.shipping-protection-widget__modal-body');
+      if (modalBody) {
+        // Set innerHTML to preserve HTML formatting from rich text editor
+        modalBody.innerHTML = this.termsAndConditions;
+      }
+      
+      // Show modal
+      modal.classList.add('shipping-protection-widget__modal--open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    hideTermsModal() {
+      const modal = document.getElementById('shipping-protection-terms-modal');
+      if (modal) {
+        modal.classList.remove('shipping-protection-widget__modal--open');
+        document.body.style.overflow = '';
+      }
     }
   }
 

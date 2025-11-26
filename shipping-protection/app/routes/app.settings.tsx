@@ -88,6 +88,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     products,
     selectedProductId,
     termsAndConditions: settings?.termsAndConditions || null,
+    termsModalTitle: settings?.termsModalTitle || null,
   };
 };
 
@@ -96,6 +97,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const productId = formData.get("productId") as string | null;
   const termsAndConditions = formData.get("termsAndConditions") as string | null;
+  const termsModalTitle = formData.get("termsModalTitle") as string | null;
 
   let productHandle: string | null = null;
   let productTitle: string | null = null;
@@ -212,6 +214,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
       termsAndConditions: termsAndConditions || null,
+      termsModalTitle: termsModalTitle || null,
       updatedAt: new Date(),
     },
     create: {
@@ -223,6 +226,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shippingProtectionVariantId: variantId || null,
       shippingProtectionPrice: price || null,
       termsAndConditions: termsAndConditions || null,
+      termsModalTitle: termsModalTitle || null,
     },
   });
 
@@ -230,11 +234,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Settings() {
-  const { products, selectedProductId, termsAndConditions } = useLoaderData<typeof loader>();
+  const { products, selectedProductId, termsAndConditions, termsModalTitle } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
   const [selectedId, setSelectedId] = useState<string | null>(selectedProductId);
   const [termsText, setTermsText] = useState<string>(termsAndConditions || "");
+  const [modalTitle, setModalTitle] = useState<string>(termsModalTitle || "Terms and Conditions");
+  const [ReactQuillComponent, setReactQuillComponent] = useState<any>(null);
+
+  useEffect(() => {
+    // Only import ReactQuill on the client side
+    if (typeof window !== "undefined") {
+      import("react-quill").then((module) => {
+        setReactQuillComponent(() => module.default);
+      });
+      import("react-quill/dist/quill.snow.css");
+    }
+  }, []);
 
   // Console log on component mount
   useEffect(() => {
@@ -269,6 +285,7 @@ export default function Settings() {
       formData.append("productId", selectedId);
     }
     formData.append("termsAndConditions", termsText);
+    formData.append("termsModalTitle", modalTitle);
     fetcher.submit(formData, { method: "POST" });
   };
 
@@ -386,27 +403,77 @@ export default function Settings() {
 
         <s-stack direction="block" gap="base">
           <div>
-            <label htmlFor="terms-textarea" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
-              Terms and Conditions
+            <label htmlFor="terms-modal-title" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+              Modal Title
             </label>
-            <textarea
-              id="terms-textarea"
-              value={termsText}
-              onChange={(e) => setTermsText(e.target.value)}
-              rows={10}
+            <input
+              id="terms-modal-title"
+              type="text"
+              value={modalTitle}
+              onChange={(e) => setModalTitle(e.target.value)}
               style={{
                 width: "100%",
-                padding: "12px",
+                padding: "8px 12px",
                 border: "1px solid #d1d5db",
                 borderRadius: "6px",
                 fontSize: "14px",
                 fontFamily: "inherit",
-                resize: "vertical",
+                marginBottom: "16px",
               }}
-              placeholder="Enter terms and conditions text here. You can use bullet points, line breaks, etc."
+              placeholder="Terms and Conditions"
             />
+          </div>
+          <div>
+            <label htmlFor="terms-editor" style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+              Terms and Conditions
+            </label>
+            {ReactQuillComponent ? (
+              <div style={{ 
+                border: "1px solid #d1d5db", 
+                borderRadius: "6px",
+                overflow: "hidden"
+              }}>
+                <ReactQuillComponent
+                  id="terms-editor"
+                  theme="snow"
+                  value={termsText}
+                  onChange={setTermsText}
+                  placeholder="Enter terms and conditions text here. You can format text with bold, italic, bullet points, etc."
+                  modules={{
+                    toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline', 'strike'],
+                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                      [{ 'indent': '-1'}, { 'indent': '+1' }],
+                      ['link'],
+                      ['clean']
+                    ],
+                  }}
+                  style={{
+                    minHeight: "200px",
+                  }}
+                />
+              </div>
+            ) : (
+              <textarea
+                id="terms-textarea"
+                value={termsText}
+                onChange={(e) => setTermsText(e.target.value)}
+                rows={10}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                }}
+                placeholder="Loading rich text editor..."
+              />
+            )}
             <s-text tone="subdued" size="small">
-              You can format text with line breaks and bullet points. The text will be displayed in a popup modal.
+              Format your text with the toolbar above. The formatted text will be displayed in a popup modal.
             </s-text>
           </div>
         </s-stack>

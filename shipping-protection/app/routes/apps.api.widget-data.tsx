@@ -80,6 +80,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.log("Widget API - productImage:", (settings as any)?.shippingProtectionProductImage);
     console.log("Widget API - variantId:", (settings as any)?.shippingProtectionVariantId);
     console.log("Widget API - price:", (settings as any)?.shippingProtectionPrice);
+    console.log("Widget API - termsModalTitle:", (settings as any)?.termsModalTitle);
 
     if (!productId) {
       return Response.json({ product: null }, { 
@@ -108,6 +109,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         price: (settings as any)?.shippingProtectionPrice || null,
       },
       termsAndConditions: (settings as any)?.termsAndConditions || null,
+      termsModalTitle: (settings as any)?.termsModalTitle || null,
     }, {
       headers: { 'Content-Type': 'application/json' }
     });
