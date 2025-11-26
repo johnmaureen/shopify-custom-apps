@@ -4,15 +4,6 @@ import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // This is a public API endpoint accessible via app proxy
-  // Log to both console and stderr to ensure we see it
-  console.error("=== Widget API Route Hit ===");
-  console.error("Widget API - Route hit! URL:", request.url);
-  console.error("Widget API - Method:", request.method);
-  console.error("Widget API - Full URL:", request.url);
-  console.log("Widget API - Route hit! URL:", request.url);
-  console.log("Widget API - Method:", request.method);
-  console.log("Widget API - Full URL:", request.url);
-  
   try {
     // Use authenticate.public.appProxy to handle app proxy requests
     // This validates the request and provides shop information
@@ -21,10 +12,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     try {
       const { session } = await authenticate.public.appProxy(request);
       shop = session?.shop || null;
-      console.log("Widget API - Shop from appProxy:", shop);
     } catch (authError) {
       // If appProxy auth fails, try to get shop from query params
-      console.log("Widget API - AppProxy auth failed, trying query params:", authError);
       const url = new URL(request.url);
       shop = url.searchParams.get("shop");
       
@@ -43,10 +32,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       }
     }
 
-    console.log("Widget API - shop:", shop);
-
     if (!shop) {
-      console.log("Widget API - No shop found, returning null");
       return Response.json({ product: null }, { 
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -59,10 +45,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       where: { shop },
     });
 
-    console.log("Widget API - settings:", settings);
-
     if (!settings?.shippingProtectionProductId) {
-      console.log("Widget API - No product ID in settings");
       return Response.json({ product: null }, { 
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -73,14 +56,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const productIdMatch = settings.shippingProtectionProductId.match(/\d+$/);
     const productId = productIdMatch ? productIdMatch[0] : null;
 
-    console.log("Widget API - extracted productId:", productId);
-    console.log("Widget API - settings object keys:", Object.keys(settings || {}));
-    console.log("Widget API - productHandle:", (settings as any)?.shippingProtectionProductHandle);
-    console.log("Widget API - productTitle:", (settings as any)?.shippingProtectionProductTitle);
-    console.log("Widget API - productImage:", (settings as any)?.shippingProtectionProductImage);
-    console.log("Widget API - variantId:", (settings as any)?.shippingProtectionVariantId);
-    console.log("Widget API - price:", (settings as any)?.shippingProtectionPrice);
-    console.log("Widget API - termsModalTitle:", (settings as any)?.termsModalTitle);
 
     if (!productId) {
       return Response.json({ product: null }, { 
@@ -114,7 +89,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
-    console.error("Widget API - Error:", error);
+    console.error("Widget API Error:", error);
     return Response.json({ product: null, error: "Internal server error" }, { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }

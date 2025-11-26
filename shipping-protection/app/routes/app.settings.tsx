@@ -41,18 +41,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const productsJson = await productsResponse.json();
   
-  // Console log for debugging
-  console.log("productsResponse:", productsResponse);
-  console.log("productsJson:", JSON.stringify(productsJson, null, 2));
-  console.log("productsJson.data:", productsJson.data);
-  console.log("productsJson.data?.products:", productsJson.data?.products);
-  console.log("productsJson.data?.products?.nodes:", productsJson.data?.products?.nodes);
-  
   // Extract products from response
   const products = productsJson.data?.products?.nodes || [];
-  
-  console.log("Extracted products:", products);
-  console.log("Products count:", products.length);
 
   // Fetch current settings
   let settings = await prisma.appSettings.findUnique({
@@ -62,27 +52,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Default product ID
   const DEFAULT_PRODUCT_ID = "gid://shopify/Product/8968086094081";
   
-  // Console log for debugging
-  console.log("Settings loader - DEFAULT_PRODUCT_ID:", DEFAULT_PRODUCT_ID);
-  console.log("Settings loader - settings from DB (before):", settings);
-  
   // If no settings exist, create with default product ID
   if (!settings) {
-    console.log("Settings loader - No settings found, creating with default product ID");
     settings = await prisma.appSettings.create({
       data: {
         shop: session.shop,
         shippingProtectionProductId: DEFAULT_PRODUCT_ID,
       },
     });
-    console.log("Settings loader - Created new settings:", settings);
   }
   
   // Use default if no product ID is set
   const selectedProductId = settings.shippingProtectionProductId || DEFAULT_PRODUCT_ID;
-  
-  console.log("Settings loader - selectedProductId (final):", selectedProductId);
-  console.log("Settings loader - selectedProductId type:", typeof selectedProductId);
 
   return {
     products,
@@ -188,14 +169,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }
 
-        console.log("Fetched product details:", {
-          productId,
-          productHandle,
-          productTitle,
-          productImage,
-          variantId,
-          price,
-        });
       }
     } catch (error) {
       console.error("Error fetching product details:", error);
@@ -299,12 +272,6 @@ export default function Settings() {
   const selectedProduct = productsArray.find(
     (p: { id: string }) => p.id === selectedId,
   );
-  
-  // Debug logging before render
-  console.log("About to render - products:", products);
-  console.log("About to render - products is array:", Array.isArray(products));
-  console.log("About to render - products length:", products?.length);
-  console.log("About to render - productsArray length:", productsArray.length);
 
   return (
     <s-page heading="Shipping Protection Settings">
@@ -334,7 +301,6 @@ export default function Settings() {
               value={selectedId || ""}
               onChange={(e) => {
                 const value = e.target.value;
-                console.log("Select changed to:", value);
                 setSelectedId(value || null);
               }}
               style={{
@@ -347,14 +313,11 @@ export default function Settings() {
             >
               <option value="">-- Select a product --</option>
               {productsArray.length > 0 ? (
-                productsArray.map((product: { id: string; title: string; status: string }) => {
-                  console.log("Rendering product option:", product.id, product.title);
-                  return (
-                    <option key={product.id} value={product.id}>
-                      {product.title} {product.status === "ACTIVE" ? "" : "(Draft)"}
-                    </option>
-                  );
-                })
+                productsArray.map((product: { id: string; title: string; status: string }) => (
+                  <option key={product.id} value={product.id}>
+                    {product.title} {product.status === "ACTIVE" ? "" : "(Draft)"}
+                  </option>
+                ))
               ) : (
                 <option value="" disabled>
                   {products ? `No products found (array length: ${products.length})` : "Loading products..."}
@@ -363,11 +326,7 @@ export default function Settings() {
             </select>
           </div>
           
-          {/* Debug info */}
-          <s-text>
-            Products loaded: {Array.isArray(products) ? products.length : "Not an array"}
-            {productsArray.length > 0 && ` | First product: ${productsArray[0]?.title || "N/A"}`}
-          </s-text>
+         
 
           {selectedProduct && (
             <s-box

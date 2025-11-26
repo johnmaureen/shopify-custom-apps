@@ -27,8 +27,6 @@
       if (this.product && !this.isAdded) {
         await this.addToCart();
       }
-
-      console.log('Shipping protection widget initialized');
     }
 
     async fetchProductData() {
@@ -37,8 +35,6 @@
         const shop = this.getShopFromPage();
         const apiUrl = shop ? `${SHIPPING_PROTECTION_API}?shop=${shop}` : SHIPPING_PROTECTION_API;
         
-        console.log('Fetching shipping protection product from:', apiUrl);
-        
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
@@ -46,9 +42,6 @@
             'Content-Type': 'application/json',
           },
         });
-
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (!response.ok) {
           console.error('API response not ok:', response.status, response.statusText);
@@ -59,7 +52,6 @@
         
         // Check if response is JSON
         const contentType = response.headers.get('content-type');
-        console.log('Content-Type:', contentType);
         
         if (!contentType || !contentType.includes('application/json')) {
           const text = await response.text();
@@ -70,8 +62,6 @@
         
         // Parse JSON directly
         const data = await response.json();
-        console.log('Parsed API data:', data);
-        console.log('Product image from API:', data.product?.image);
         
         // Store terms and conditions
         this.termsAndConditions = data.termsAndConditions || null;
@@ -80,27 +70,15 @@
         if (data.product && data.product.productId) {
           this.product = data.product;
           
-          // Log the image URL we received
-          if (this.product.image) {
-            console.log('Product image URL:', this.product.image);
-          } else {
-            console.warn('No product image URL in API response');
-          }
-          
           // If we already have variantId and price from API, skip fetching product details
           if (!this.product.variantId || !this.product.price) {
             await this.fetchProductDetails();
-          } else {
-            console.log('Using product data from API, skipping product details fetch');
           }
           
           this.checkIfInCart();
-        } else {
-          console.log('No product data in response');
         }
       } catch (error) {
         console.error('Error fetching shipping protection product:', error);
-        console.error('Error details:', error.message, error.stack);
       }
     }
 
@@ -148,7 +126,6 @@
 
     async fetchProductDetails() {
       if (!this.product?.productId) {
-        console.log('No productId to fetch details for');
         return;
       }
       
@@ -161,34 +138,23 @@
       // If we have both variantId and price, skip the fetch entirely
       // The image is optional and we can work without it
       if (!needsVariantId && !needsPrice) {
-        console.log('VariantId and price already available from API, skipping product details fetch');
-        // Try to get image from productHandle if available
-        if (needsImage && this.product.productHandle) {
-          // Try to construct a potential image URL (this may not work for all stores)
-          // The actual image should ideally come from the API in the future
-          console.log('Image not available, but we have productHandle:', this.product.productHandle);
-        }
         return;
       }
       
       try {
         const productUrl = `/products/${this.product.productId}.js`;
-        console.log('Fetching product details from:', productUrl);
         
         const response = await fetch(productUrl);
         
         if (!response.ok) {
-          console.error('Product details response not ok:', response.status);
           // If we have variantId and price from API, we can continue without the fetch
           if (!needsVariantId && !needsPrice) {
-            console.warn('Product details fetch failed, but we have required data from API, continuing...');
             return;
           }
           return;
         }
         
         const productData = await response.json();
-        console.log('Product details:', productData);
         
         // Only update variantId and price if we don't already have them
         if (needsVariantId || needsPrice) {
@@ -199,7 +165,6 @@
             if (needsPrice) {
               this.product.price = productData.variants[0].price;
             }
-            console.log('Set variantId:', this.product.variantId, 'price:', this.product.price);
           }
         }
         
@@ -210,7 +175,6 @@
           } else if (productData.images && productData.images.length > 0) {
             this.product.image = productData.images[0];
           }
-          console.log('Set product image:', this.product.image);
         }
       } catch (error) {
         console.error('Error fetching product details:', error);
@@ -557,7 +521,6 @@
 
       // Get product image URL, with fallback
       const imageUrl = this.product.image || '';
-      console.log('Rendering widget - imageUrl:', imageUrl);
       
       const fallbackSvg = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 2L4 7V12C4 16.55 6.36 20.74 10 21.91C11.5 21.42 12.5 20.5 12.5 20.5C12.5 20.5 13.5 21.42 15 21.91C18.64 20.74 21 16.55 21 12V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>
@@ -831,11 +794,8 @@
 
     showTermsModal() {
       if (!this.termsAndConditions) {
-        console.warn('No terms and conditions available');
         return;
       }
-
-      console.log('Showing terms modal with content:', this.termsAndConditions);
 
       // Create modal if it doesn't exist
       let modal = document.getElementById('shipping-protection-terms-modal');
